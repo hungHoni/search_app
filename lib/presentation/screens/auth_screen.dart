@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/animated_fade_item.dart';
 import 'package:go_router/go_router.dart';
+import 'splash_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -12,6 +13,7 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  bool _splashComplete = false;
   bool _checkingOnboarding = true;
   bool _onboardingDone = false;
 
@@ -32,8 +34,20 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
+  void _onSplashComplete() {
+    if (mounted) {
+      setState(() => _splashComplete = true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Show splash screen on cold start while we initialize
+    if (!_splashComplete) {
+      return SplashScreen(onComplete: _onSplashComplete);
+    }
+
+    // After splash, check onboarding
     if (_checkingOnboarding) {
       return const Scaffold(body: SizedBox.shrink());
     }
@@ -49,18 +63,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          );
+          return const Scaffold(body: SizedBox.shrink());
         }
 
         if (snapshot.hasData) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             context.go('/search');
           });
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          );
+          return const Scaffold(body: SizedBox.shrink());
         }
 
         return const AuthScreen();
