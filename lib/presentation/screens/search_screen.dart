@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/shimmer_skeleton.dart';
 import '../widgets/empty_state_view.dart';
+import '../../infrastructure/suggestion_service.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -33,6 +34,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isSaving = false;
   List<SearchResult> _results = [];
   String? _errorMessage;
+  bool _isPersonalized = false;
 
   List<Map<String, dynamic>> _shuffledKeywords = [];
 
@@ -40,6 +42,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _shuffleEditorialKeywords();
+    _loadPersonalizedSuggestions(); // Async — will update chips when ready
 
     // If the router deep-linked us directly to a search query, execute it immediately
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
@@ -47,6 +50,44 @@ class _SearchScreenState extends State<SearchScreen> {
       // Delay slightly to let the UI build the loading state cleanly
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _executeSearch(widget.initialQuery!);
+      });
+    }
+  }
+
+  /// Attempts to load personalized topic suggestions from Gemini
+  /// based on the user's bookmark history. If successful, replaces
+  /// the static keyword chips. Falls back silently on failure.
+  Future<void> _loadPersonalizedSuggestions() async {
+    final service = SuggestionService();
+    final suggestions = await service.generatePersonalizedSuggestions();
+    if (suggestions.isNotEmpty && mounted) {
+      // Convert plain strings into the editorial keyword format
+      const sizes = [28.0, 18.0, 22.0, 14.0, 32.0, 20.0];
+      const weights = [
+        FontWeight.w300,
+        FontWeight.w400,
+        FontWeight.w300,
+        FontWeight.w600,
+        FontWeight.w300,
+        FontWeight.w400,
+      ];
+
+      int delay = 400;
+      final personalized = suggestions.asMap().entries.map((entry) {
+        final i = entry.key;
+        final text = entry.value;
+        delay += 50;
+        return <String, dynamic>{
+          'text': text,
+          'size': sizes[i % sizes.length],
+          'weight': weights[i % weights.length],
+          'delay': delay,
+        };
+      }).toList();
+
+      setState(() {
+        _shuffledKeywords = personalized;
+        _isPersonalized = true;
       });
     }
   }
@@ -199,7 +240,25 @@ class _SearchScreenState extends State<SearchScreen> {
                                 child: _buildSearchBar(context),
                               ),
                               const SizedBox(height: 64),
-                              // 3. Staggered Asymmetrical Typography Topics
+                              // 3. Personalized label or staggered grid
+                              if (_isPersonalized)
+                                AnimatedFadeItem(
+                                  delay: const Duration(milliseconds: 350),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: Text(
+                                      "SUGGESTED FOR YOU",
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            letterSpacing: 3.0,
+                                            fontWeight: FontWeight.w700,
+                                            color: Theme.of(context).hintColor,
+                                          ),
+                                    ),
+                                  ),
+                                ),
                               _buildStaggeredEditorialGrid(),
                             ],
                           ),
