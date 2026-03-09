@@ -9,6 +9,7 @@ import '../../presentation/screens/bookmarks_screen.dart';
 import '../../domain/models/saved_search.dart';
 import '../../domain/models/flashcard.dart';
 import '../../presentation/screens/flashcard_review_screen.dart';
+import '../../presentation/screens/onboarding_screen.dart';
 
 // Provides standard routing for the application with Deep Linking support
 final GoRouter appRouter = GoRouter(
@@ -19,6 +20,12 @@ final GoRouter appRouter = GoRouter(
       path: '/',
       builder: (BuildContext context, GoRouterState state) {
         return const AuthWrapper();
+      },
+    ),
+    GoRoute(
+      path: '/onboarding',
+      builder: (BuildContext context, GoRouterState state) {
+        return const OnboardingScreen();
       },
     ),
     GoRoute(
@@ -96,8 +103,12 @@ final GoRouter appRouter = GoRouter(
     final bool loggedIn = FirebaseAuth.instance.currentUser != null;
     final bool loggingIn =
         state.matchedLocation == '/login' || state.matchedLocation == '/signup';
+    final bool onboarding = state.matchedLocation == '/onboarding';
 
-    if (!loggedIn && !loggingIn && state.matchedLocation != '/') {
+    if (!loggedIn &&
+        !loggingIn &&
+        !onboarding &&
+        state.matchedLocation != '/') {
       return '/login';
     }
 

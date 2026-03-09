@@ -9,6 +9,8 @@ import '../widgets/animated_fade_item.dart';
 import '../widgets/result_list_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import '../widgets/shimmer_skeleton.dart';
+import '../widgets/empty_state_view.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -320,7 +322,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+      return const ShimmerSkeleton(lines: 5);
     }
 
     if (_errorMessage != null) {
@@ -341,11 +343,10 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     if (_results.isEmpty) {
-      return Center(
-        child: Text(
-          'No insights found.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+      return const EmptyStateView(
+        icon: Icons.search_off,
+        headline: "No insights found",
+        subtitle: "Try a different topic or rephrase your query.",
       );
     }
 

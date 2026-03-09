@@ -10,6 +10,8 @@ import 'package:flutter/services.dart';
 import '../../core/utils/markdown_exporter.dart';
 import '../../domain/repositories/search_repository.dart';
 import '../../infrastructure/gemini_search_service.dart';
+import '../widgets/shimmer_skeleton.dart';
+import '../widgets/empty_state_view.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -47,9 +49,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           stream: _bookmarkService.watchSavedSearches(_uid),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
-              );
+              return const ShimmerSkeleton(lines: 4);
             }
 
             if (snapshot.hasError) {
@@ -63,13 +63,13 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
             final bookmarks = snapshot.data ?? [];
             if (bookmarks.isEmpty) {
-              return Center(
-                child: Text(
-                  "No saved lessons yet.",
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).hintColor,
-                  ),
-                ),
+              return EmptyStateView(
+                icon: Icons.bookmark_border,
+                headline: "No saved lessons yet",
+                subtitle:
+                    "Search for a topic, then tap Save Lesson to build your personal library.",
+                actionLabel: "START LEARNING",
+                onAction: () => context.go('/search'),
               );
             }
 

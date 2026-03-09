@@ -1,13 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/animated_fade_item.dart';
 import 'package:go_router/go_router.dart';
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _checkingOnboarding = true;
+  bool _onboardingDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboarding();
+  }
+
+  Future<void> _checkOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final done = prefs.getBool('onboarding_complete') ?? false;
+    if (mounted) {
+      setState(() {
+        _onboardingDone = done;
+        _checkingOnboarding = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_checkingOnboarding) {
+      return const Scaffold(body: SizedBox.shrink());
+    }
+
+    if (!_onboardingDone) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go('/onboarding');
+      });
+      return const Scaffold(body: SizedBox.shrink());
+    }
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
