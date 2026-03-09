@@ -27,24 +27,33 @@ class _AnimatedFadeItemState extends State<AnimatedFadeItem>
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
 
-    // Clean fade in
-    _opacity = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
 
-    // Subtle slide up effect (starts 10% lower, moves to 0%)
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _slide = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero)
+        .animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
 
-    // Trigger animation after the delay
+    _startAnimation();
+  }
+  
+  void _startAnimation() {
     Future.delayed(widget.delay, () {
       if (mounted) {
         _controller.forward();
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(AnimatedFadeItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.delay != oldWidget.delay) {
+       _controller.reset();
+       _startAnimation();
+    }
   }
 
   @override

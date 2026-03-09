@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-import 'presentation/screens/search_screen.dart';
+import 'presentation/screens/auth_screen.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await dotenv.load(fileName: ".env");
   runApp(const MinimalSearchApp());
 }
@@ -66,7 +70,7 @@ class MinimalSearchApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const SearchScreen(),
+      home: const AuthWrapper(),
     );
   }
 }

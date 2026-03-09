@@ -18,7 +18,7 @@ class GeminiSearchService implements SearchRepository {
     }
 
     final model = GenerativeModel(
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-2.5-flash',
       apiKey: apiKey,
       generationConfig: GenerationConfig(responseMimeType: 'application/json'),
     );

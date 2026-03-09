@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "204197319739",
+    "project_id": "learnsearch-7b659",
+    "storage_bucket": "learnsearch-7b659.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:204197319739:android:1cf0eefa4c1e7dfa39381e",
+        "android_client_info": {
+          "package_name": "com.example.search_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCt2c6BgesbZSkx-NxDbwREdhqHLvXpa6w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
