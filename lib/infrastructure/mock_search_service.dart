@@ -1,4 +1,5 @@
 import '../domain/models/search_result.dart';
+import '../domain/models/flashcard.dart';
 import '../domain/repositories/search_repository.dart';
 
 class MockSearchService implements SearchRepository {
@@ -40,5 +41,21 @@ class MockSearchService implements SearchRepository {
         url: '',
       ),
     ];
+  }
+
+  @override
+  Future<List<Flashcard>> generateFlashcards(
+    String topic,
+    List<SearchResult> context,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 1500));
+    return List.generate(
+      5,
+      (index) => Flashcard(
+        question: 'Mock Question ${index + 1} about $topic?',
+        answer:
+            'This is the simulated answer based on the provided context for $topic.',
+      ),
+    );
   }
 }

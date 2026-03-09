@@ -5,6 +5,11 @@ import '../../domain/repositories/bookmark_repository.dart';
 import '../../infrastructure/firestore_bookmark_repository.dart';
 import '../widgets/animated_fade_item.dart';
 import '../widgets/result_list_view.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
+import '../../core/utils/markdown_exporter.dart';
+import '../../domain/repositories/search_repository.dart';
+import '../../infrastructure/gemini_search_service.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -79,13 +84,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                   delay: Duration(milliseconds: 100 + (index * 50)),
                   child: InkWell(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              SavedDetailScreen(savedSearch: item),
-                        ),
-                      );
+                      context.push('/bookmarks/detail', extra: item);
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
@@ -122,28 +121,150 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   }
 }
 
-class SavedDetailScreen extends StatelessWidget {
+class SavedDetailScreen extends StatefulWidget {
   final SavedSearch savedSearch;
 
   const SavedDetailScreen({super.key, required this.savedSearch});
 
   @override
+  State<SavedDetailScreen> createState() => _SavedDetailScreenState();
+}
+
+class _SavedDetailScreenState extends State<SavedDetailScreen> {
+  bool _isGenerating = false;
+  late SavedSearch _currentSearch;
+  final SearchRepository _searchService = GeminiSearchService();
+  final BookmarkRepository _bookmarkService = FirestoreBookmarkRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentSearch = widget.savedSearch;
+  }
+
+  Future<void> _generateFlashcards() async {
+    setState(() => _isGenerating = true);
+    try {
+      final flashcards = await _searchService.generateFlashcards(
+        _currentSearch.query,
+        _currentSearch.results,
+      );
+
+      final updatedSearch = SavedSearch(
+        id: _currentSearch.id,
+        query: _currentSearch.query,
+        timestamp: _currentSearch.timestamp,
+        results: _currentSearch.results,
+        flashcards: flashcards,
+      );
+
+      await _bookmarkService.updateSearch(updatedSearch);
+
+      if (mounted) {
+        setState(() {
+          _currentSearch = updatedSearch;
+          _isGenerating = false;
+        });
+        context.push('/flashcards', extra: flashcards);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed: $e"),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final hasFlashcards =
+        _currentSearch.flashcards != null &&
+        _currentSearch.flashcards!.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          savedSearch.query.toUpperCase(),
+          _currentSearch.query.toUpperCase(),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w400,
             fontSize: 22,
           ),
         ),
         scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.copy,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            tooltip: 'Export to Notion (Markdown)',
+            onPressed: () async {
+              final markdown = MarkdownExporter.exportToNotion(_currentSearch);
+              await Clipboard.setData(ClipboardData(text: markdown));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      "Markdown copied! Paste smoothly into Notion.",
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          if (hasFlashcards)
+            TextButton.icon(
+              onPressed: () {
+                context.push('/flashcards', extra: _currentSearch.flashcards);
+              },
+              icon: Icon(
+                Icons.style,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              label: Text(
+                "STUDY",
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          else
+            TextButton.icon(
+              onPressed: _isGenerating ? null : _generateFlashcards,
+              icon: _isGenerating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      Icons.auto_awesome,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              label: Text(
+                _isGenerating ? "GENERATING..." : "FLASHCARDS",
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          const SizedBox(width: 16),
+        ],
       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: ResultListView(results: savedSearch.results),
+          child: ResultListView(results: _currentSearch.results),
         ),
       ),
     );

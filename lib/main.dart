@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-import 'presentation/screens/auth_screen.dart';
+import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +20,8 @@ class MinimalSearchApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseTextTheme = Theme.of(context).textTheme;
 
-    return MaterialApp(
+    return MaterialApp.router(
+      routerConfig: appRouter,
       title: 'Minimal Search',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.light, // Forced Light Mode
@@ -70,7 +71,6 @@ class MinimalSearchApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const AuthWrapper(),
     );
   }
 }

@@ -7,6 +7,7 @@ abstract class BookmarkRepository {
     String query,
     List<SearchResult> results,
   );
+  Future<void> updateSearch(SavedSearch search);
   Future<void> deleteSearch(String userId, String bookmarkId);
   Stream<List<SavedSearch>> watchSavedSearches(String userId);
 }

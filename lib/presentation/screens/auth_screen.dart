@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/animated_fade_item.dart';
-import 'search_screen.dart';
-import 'signup_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -19,7 +18,12 @@ class AuthWrapper extends StatelessWidget {
         }
 
         if (snapshot.hasData) {
-          return const SearchScreen();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.go('/search');
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
         }
 
         return const AuthScreen();
@@ -240,12 +244,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             const SizedBox(height: 16),
                             TextButton(
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const SignupScreen(),
-                                  ),
-                                );
+                                context.push('/signup');
                               },
                               child: Text(
                                 "Need an account? Sign up",

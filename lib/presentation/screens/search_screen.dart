@@ -8,10 +8,12 @@ import '../../domain/repositories/bookmark_repository.dart';
 import '../widgets/animated_fade_item.dart';
 import '../widgets/result_list_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'bookmarks_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final String? initialQuery;
+
+  const SearchScreen({super.key, this.initialQuery});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -27,7 +29,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   bool _isLoading = false;
   bool _isSaving = false;
-  bool _hasSearched = false;
   List<SearchResult> _results = [];
   String? _errorMessage;
 
@@ -37,6 +38,36 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _shuffleEditorialKeywords();
+
+    // If the router deep-linked us directly to a search query, execute it immediately
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _searchController.text = widget.initialQuery!;
+      // Delay slightly to let the UI build the loading state cleanly
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _executeSearch(widget.initialQuery!);
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(SearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialQuery != oldWidget.initialQuery) {
+      if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+        if (_searchController.text != widget.initialQuery) {
+          _searchController.text = widget.initialQuery!;
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _executeSearch(widget.initialQuery!);
+        });
+      } else {
+        // Navigating back to the idle home state
+        setState(() {
+          _results = [];
+          _errorMessage = null;
+        });
+      }
+    }
   }
 
   void _shuffleEditorialKeywords() {
@@ -79,12 +110,17 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  void _submitSearch(String query) async {
+  void _submitSearch(String query) {
     if (query.trim().isEmpty) return;
 
+    // Instead of doing the work locally, push a new URL to the router.
+    // This allows the browser back button to work naturally.
+    context.go('/search?q=${Uri.encodeComponent(query)}');
+  }
+
+  void _executeSearch(String query) async {
     setState(() {
       _isLoading = true;
-      _hasSearched = true;
       _errorMessage = null;
     });
 
@@ -125,7 +161,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               child: Column(
                 children: [
-                  if (_hasSearched) ...[
+                  if (widget.initialQuery != null) ...[
                     // When actively searching, we want the bar pinned to the top.
                     _buildSearchBar(context),
                     const SizedBox(height: 32),
@@ -172,19 +208,14 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
             ),
-            if (!_hasSearched)
+            if (widget.initialQuery == null)
               Positioned(
                 top: 16,
                 right: 24,
                 child: IconButton(
                   icon: const Icon(Icons.bookmarks_outlined, size: 28),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const BookmarksScreen(),
-                      ),
-                    );
+                    context.push('/bookmarks');
                   },
                 ),
               ),

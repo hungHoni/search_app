@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/animated_fade_item.dart';
+import 'package:go_router/go_router.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -43,7 +44,7 @@ class _SignupScreenState extends State<SignupScreen> {
         password: password,
       );
       if (mounted) {
-        Navigator.pop(context);
+        context.pop();
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -66,7 +67,7 @@ class _SignupScreenState extends State<SignupScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         scrolledUnderElevation: 0,
       ),
@@ -224,7 +225,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             const SizedBox(height: 16),
                             TextButton(
                               onPressed: () {
-                                Navigator.pop(context);
+                                context.pop();
                               },
                               child: Text(
                                 "Already have an account? Log in",

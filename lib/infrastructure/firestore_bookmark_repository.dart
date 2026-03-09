@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../domain/models/saved_search.dart';
 import '../domain/models/search_result.dart';
@@ -27,6 +28,19 @@ class FirestoreBookmarkRepository implements BookmarkRepository {
     );
 
     await docRef.set(savedSearch.toJson());
+  }
+
+  @override
+  Future<void> updateSearch(SavedSearch search) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('bookmarks')
+        .doc(search.id)
+        .set(search.toJson(), SetOptions(merge: true));
   }
 
   @override

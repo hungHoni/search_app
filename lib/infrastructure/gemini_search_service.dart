@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../domain/models/search_result.dart';
+import '../domain/models/flashcard.dart';
 import '../domain/repositories/search_repository.dart';
 
 class GeminiSearchService implements SearchRepository {
@@ -67,6 +68,68 @@ The summary should be concise, highly educational, and 2-3 sentences max.
         );
       }
       throw Exception('Failed to fetch from Gemini: $e');
+    }
+  }
+
+  @override
+  Future<List<Flashcard>> generateFlashcards(
+    String topic,
+    List<SearchResult> contextData,
+  ) async {
+    final apiKey = dotenv.env['GEMINI_API_KEY'];
+    if (apiKey == null ||
+        apiKey.isEmpty ||
+        apiKey == 'your_gemini_api_key_here') {
+      throw Exception('Missing real Gemini API Key for flashcards.');
+    }
+
+    final model = GenerativeModel(
+      model: 'gemini-2.5-flash',
+      apiKey: apiKey,
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
+    );
+
+    final String contextText = contextData
+        .map((c) => '${c.title}: ${c.summary}')
+        .join('\n');
+
+    final prompt =
+        '''
+You are an expert technical educator. I have provided a 5-part educational analysis of the topic: "$topic".
+Based ONLY on the following context, generate exactly 5 highly educational Q&A flashcards.
+
+Context:
+$contextText
+
+Return the result strictly as a JSON array of exactly 5 objects. Each object must have exactly two string fields: "question" and "answer".
+Keep the questions concise, and the answers thorough but easily readable (2-3 sentences max).
+''';
+
+    try {
+      final content = [Content.text(prompt)];
+      final response = await model.generateContent(content);
+
+      final String? responseText = response.text;
+      if (responseText == null || responseText.isEmpty) {
+        throw Exception('Received an empty response from Gemini.');
+      }
+
+      final List<dynamic> jsonList = jsonDecode(responseText);
+
+      if (jsonList.length < 5) {
+        throw Exception('Gemini did not return all 5 required flashcards.');
+      }
+
+      return jsonList.take(5).map((json) {
+        return Flashcard.fromJson(json as Map<String, dynamic>);
+      }).toList();
+    } catch (e) {
+      if (e is FormatException) {
+        throw Exception(
+          'Gemini returned an invalid JSON block. Please try again.',
+        );
+      }
+      throw Exception('Failed to generate flashcards: $e');
     }
   }
 }
