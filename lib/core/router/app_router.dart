@@ -11,52 +11,91 @@ import '../../domain/models/flashcard.dart';
 import '../../presentation/screens/flashcard_review_screen.dart';
 import '../../presentation/screens/onboarding_screen.dart';
 
-// Provides standard routing for the application with Deep Linking support
+/// Creates a [CustomTransitionPage] with a combined fade + vertical slide
+/// animation. Duration is 300ms with an easeOut curve for a premium feel.
+CustomTransitionPage<void> _fadeSlideTransition({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final fadeAnimation = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOut,
+      );
+      final slideAnimation = Tween<Offset>(
+        begin: const Offset(0, 0.04), // Subtle 4% upward slide
+        end: Offset.zero,
+      ).animate(fadeAnimation);
+
+      return FadeTransition(
+        opacity: fadeAnimation,
+        child: SlideTransition(position: slideAnimation, child: child),
+      );
+    },
+  );
+}
+
+/// Provides standard routing for the application with Deep Linking support
+/// and smooth page transition animations across all routes.
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   routes: <RouteBase>[
     // The entrypoint: AuthWrapper determines where the user goes
     GoRoute(
       path: '/',
-      builder: (BuildContext context, GoRouterState state) {
-        return const AuthWrapper();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _fadeSlideTransition(state: state, child: const AuthWrapper());
       },
     ),
     GoRoute(
       path: '/onboarding',
-      builder: (BuildContext context, GoRouterState state) {
-        return const OnboardingScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _fadeSlideTransition(
+          state: state,
+          child: const OnboardingScreen(),
+        );
       },
     ),
     GoRoute(
       path: '/login',
-      builder: (BuildContext context, GoRouterState state) {
-        return const AuthScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _fadeSlideTransition(state: state, child: const AuthScreen());
       },
     ),
     GoRoute(
       path: '/signup',
-      builder: (BuildContext context, GoRouterState state) {
-        return const SignupScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _fadeSlideTransition(state: state, child: const SignupScreen());
       },
     ),
     // The main application screen. The 'q' param dictates if we show results or idle grid.
     GoRoute(
       path: '/search',
-      builder: (BuildContext context, GoRouterState state) {
+      pageBuilder: (BuildContext context, GoRouterState state) {
         final query = state.uri.queryParameters['q'];
-        return SearchScreen(initialQuery: query);
+        return _fadeSlideTransition(
+          state: state,
+          child: SearchScreen(initialQuery: query),
+        );
       },
     ),
     GoRoute(
       path: '/bookmarks',
-      builder: (BuildContext context, GoRouterState state) {
-        return const BookmarksScreen();
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _fadeSlideTransition(
+          state: state,
+          child: const BookmarksScreen(),
+        );
       },
       routes: [
         GoRoute(
           path: 'detail',
-          builder: (BuildContext context, GoRouterState state) {
+          pageBuilder: (BuildContext context, GoRouterState state) {
             SavedSearch? savedSearch;
             if (state.extra is SavedSearch) {
               savedSearch = state.extra as SavedSearch;
@@ -68,18 +107,24 @@ final GoRouter appRouter = GoRouter(
               );
             }
             if (savedSearch == null) {
-              return const Scaffold(
-                body: Center(child: Text("Invalid Bookmark Data")),
+              return _fadeSlideTransition(
+                state: state,
+                child: const Scaffold(
+                  body: Center(child: Text("Invalid Bookmark Data")),
+                ),
               );
             }
-            return SavedDetailScreen(savedSearch: savedSearch);
+            return _fadeSlideTransition(
+              state: state,
+              child: SavedDetailScreen(savedSearch: savedSearch),
+            );
           },
         ),
       ],
     ),
     GoRoute(
       path: '/flashcards',
-      builder: (BuildContext context, GoRouterState state) {
+      pageBuilder: (BuildContext context, GoRouterState state) {
         List<Flashcard>? flashcards;
         if (state.extra is List) {
           final list = state.extra as List;
@@ -90,15 +135,21 @@ final GoRouter appRouter = GoRouter(
           }).toList();
         }
         if (flashcards == null || flashcards.isEmpty) {
-          return const Scaffold(
-            body: Center(child: Text("Invalid Flashcard Data")),
+          return _fadeSlideTransition(
+            state: state,
+            child: const Scaffold(
+              body: Center(child: Text("Invalid Flashcard Data")),
+            ),
           );
         }
-        return FlashcardReviewScreen(flashcards: flashcards);
+        return _fadeSlideTransition(
+          state: state,
+          child: FlashcardReviewScreen(flashcards: flashcards),
+        );
       },
     ),
   ],
-  // Optional: Add a redirect guard to ensure unauthenticated users cannot access /search
+  // Redirect guard to ensure unauthenticated users cannot access /search
   redirect: (BuildContext context, GoRouterState state) {
     final bool loggedIn = FirebaseAuth.instance.currentUser != null;
     final bool loggingIn =

@@ -29,14 +29,13 @@ class GeminiSearchService implements SearchRepository {
 You are an expert technical educator. Provide a deep, 5-part educational analysis of the topic: "$query".
 Return the result strictly as a JSON array of 5 objects. Each object must have exactly two string fields: "title" and "summary".
 
-The titles must strictly follow this numbered structure:
-1. The Core Concept
-2. Key Components & Implementation
-3. Time & Space Complexity
-4. Common Pitfalls
-5. Real-World Applications
+IMPORTANT: Choose 5 section titles that are MOST RELEVANT to this specific topic. Do NOT use generic categories.
+For example:
+- For "Docker": "Container Architecture", "Dockerfile Best Practices", "Networking & Volumes", "Security Considerations", "Docker Compose Orchestration"
+- For "Binary Search": "Algorithm Mechanics", "Time & Space Complexity", "Edge Cases & Off-by-One", "Variations (Lower/Upper Bound)", "Real-World Search Applications"
+- For "REST APIs": "Resource Design Principles", "HTTP Methods & Status Codes", "Authentication Strategies", "Versioning & Pagination", "Rate Limiting & Caching"
 
-The summary should be concise, highly educational, and 2-3 sentences max.
+Each title should be numbered (1-5) and specific to "$query". The summary should be concise, highly educational, and 2-3 sentences max.
 ''';
 
     try {

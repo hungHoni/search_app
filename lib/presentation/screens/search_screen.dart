@@ -12,6 +12,9 @@ import 'package:go_router/go_router.dart';
 import '../widgets/shimmer_skeleton.dart';
 import '../widgets/empty_state_view.dart';
 import '../../infrastructure/suggestion_service.dart';
+import '../../data/topic_store.dart';
+import '../../infrastructure/topic_cache_service.dart';
+import '../../data/topic_content.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -29,6 +32,7 @@ class _SearchScreenState extends State<SearchScreen> {
   // Dependency injection (simplified for this minimal app)
   final SearchRepository _searchService = GeminiSearchService();
   final BookmarkRepository _bookmarkService = FirestoreBookmarkRepository();
+  final TopicCacheService _cacheService = TopicCacheService();
 
   bool _isLoading = false;
   bool _isSaving = false;
@@ -114,35 +118,32 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _shuffleEditorialKeywords() {
-    final pool = [
-      {'text': 'SYSTEM DESIGN', 'size': 24.0, 'weight': FontWeight.w300},
-      {'text': 'Data Structures', 'size': 18.0, 'weight': FontWeight.w400},
-      {
-        'text': 'ALGORITHMS',
-        'size': 14.0,
-        'weight': FontWeight.w600,
-        'spacing': 2.0,
-      },
-      {'text': 'Machine Learning', 'size': 32.0, 'weight': FontWeight.w300},
-      {'text': 'O(n) Complexity', 'size': 16.0, 'weight': FontWeight.w500},
-      {'text': 'Microservices', 'size': 20.0, 'weight': FontWeight.w300},
-      {'text': 'REST APIs', 'size': 28.0, 'weight': FontWeight.w300},
-      {'text': 'GraphQL', 'size': 22.0, 'weight': FontWeight.w400},
-      {'text': 'SOLID Principles', 'size': 14.0, 'weight': FontWeight.w500},
-      {'text': 'Docker', 'size': 26.0, 'weight': FontWeight.w200},
-      {'text': 'Concurrency', 'size': 18.0, 'weight': FontWeight.w400},
-    ];
-
+    // Use the full 100-topic pool — shuffle and pick 6 fresh ones each time
+    final pool = List<String>.from(TopicStore.topics);
     pool.shuffle();
     final selected = pool.take(6).toList();
 
-    // Assign staggered delays for the entrance animation
+    // Assign varied typographic styles for editorial feel
+    const sizes = [28.0, 18.0, 22.0, 14.0, 32.0, 20.0];
+    const weights = [
+      FontWeight.w300,
+      FontWeight.w400,
+      FontWeight.w300,
+      FontWeight.w600,
+      FontWeight.w300,
+      FontWeight.w400,
+    ];
+
     int delay = 400;
-    _shuffledKeywords = selected.map((item) {
-      final copy = Map<String, dynamic>.from(item);
-      copy['delay'] = delay;
+    _shuffledKeywords = selected.asMap().entries.map((entry) {
+      final i = entry.key;
       delay += 50;
-      return copy;
+      return <String, dynamic>{
+        'text': entry.value,
+        'size': sizes[i % sizes.length],
+        'weight': weights[i % weights.length],
+        'delay': delay,
+      };
     }).toList();
   }
 
@@ -168,12 +169,39 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
+      // 1. Check built-in pre-generated content (90 topics, zero API cost)
+      final builtIn = TopicContent.getResults(query);
+      if (builtIn != null && builtIn.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _results = builtIn;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // 2. Check local cache for previously-fetched topics
+      final cached = await _cacheService.getCachedResults(query);
+      if (cached != null && cached.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _results = cached;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // Cache miss — fetch from Gemini and cache the result
       final results = await _searchService.fetchResults(query);
       if (mounted) {
         setState(() {
           _results = results;
           _isLoading = false;
         });
+        // Cache for future instant access
+        await _cacheService.cacheResults(query, results);
       }
     } catch (e) {
       if (mounted) {
