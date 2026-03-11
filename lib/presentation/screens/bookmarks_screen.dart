@@ -12,6 +12,7 @@ import '../../domain/repositories/search_repository.dart';
 import '../../infrastructure/gemini_search_service.dart';
 import '../widgets/shimmer_skeleton.dart';
 import '../widgets/empty_state_view.dart';
+import '../../infrastructure/purchase_service.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -147,6 +148,17 @@ class _SavedDetailScreenState extends State<SavedDetailScreen> {
   }
 
   Future<void> _generateFlashcards() async {
+    if (!PurchaseService().isPremium) {
+      if (mounted) {
+        final didPurchase = await context.push<bool>(
+          '/paywall?q=${Uri.encodeComponent('Flashcards: ${_currentSearch.query}')}',
+        );
+        if (didPurchase != true) {
+          return;
+        }
+      }
+    }
+
     setState(() => _isGenerating = true);
     try {
       final flashcards = await _searchService.generateFlashcards(
