@@ -15,6 +15,7 @@ import '../../infrastructure/suggestion_service.dart';
 import '../../data/topic_store.dart';
 import '../../infrastructure/topic_cache_service.dart';
 import '../../data/topic_content.dart';
+import '../../infrastructure/purchase_service.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -193,7 +194,26 @@ class _SearchScreenState extends State<SearchScreen> {
         return;
       }
 
-      // Cache miss — fetch from Gemini and cache the result
+      // 3. Monetization Check: Free tier ends here. Custom API searches require Premium.
+      if (!PurchaseService().isPremium) {
+        if (mounted) {
+          // Push paywall. If they buy it, they return true.
+          final didPurchase = await context.push<bool>(
+            '/paywall?q=${Uri.encodeComponent(query)}',
+          );
+          if (didPurchase != true) {
+            // User cancelled or failed to buy.
+            setState(() {
+              _isLoading = false;
+              _results = [];
+              _errorMessage = null; // Just return them to idle/empty state
+            });
+            return;
+          }
+        }
+      }
+
+      // 4. Cache miss + Premium User — fetch from Gemini and cache the result
       final results = await _searchService.fetchResults(query);
       if (mounted) {
         setState(() {

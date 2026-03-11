@@ -10,6 +10,7 @@ import '../../domain/models/saved_search.dart';
 import '../../domain/models/flashcard.dart';
 import '../../presentation/screens/flashcard_review_screen.dart';
 import '../../presentation/screens/onboarding_screen.dart';
+import '../../presentation/screens/paywall_screen.dart';
 
 /// Creates a [CustomTransitionPage] with a combined fade + vertical slide
 /// animation. Duration is 300ms with an easeOut curve for a premium feel.
@@ -145,6 +146,16 @@ final GoRouter appRouter = GoRouter(
         return _fadeSlideTransition(
           state: state,
           child: FlashcardReviewScreen(flashcards: flashcards),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/paywall',
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        final query = state.uri.queryParameters['q'] ?? '';
+        return _fadeSlideTransition(
+          state: state,
+          child: PaywallScreen(attemptedQuery: query),
         );
       },
     ),

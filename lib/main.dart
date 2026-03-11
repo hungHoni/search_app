@@ -5,11 +5,19 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'core/router/app_router.dart';
+import 'infrastructure/purchase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await dotenv.load(fileName: ".env");
+
+  // Initialize RevenueCat
+  await PurchaseService().init(
+    dotenv.env['REVENUECAT_APPLE_API_KEY'] ?? '',
+    dotenv.env['REVENUECAT_GOOGLE_API_KEY'] ?? '',
+  );
+
   runApp(const MinimalSearchApp());
 }
 
