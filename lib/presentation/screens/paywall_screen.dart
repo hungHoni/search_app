@@ -20,10 +20,24 @@ class _PaywallScreenState extends State<PaywallScreen> {
     setState(() => _isLoading = true);
     final success = await PurchaseService().purchasePremium();
     if (mounted) {
-      setState(() => _isLoading = false);
       if (success) {
-        // If successful, pop the paywall and return true
-        context.pop(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Purchase successful! Unlimited access unlocked.',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF222222),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          setState(() => _isLoading = false);
+          context.pop(true);
+        }
+      } else {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -32,11 +46,24 @@ class _PaywallScreenState extends State<PaywallScreen> {
     setState(() => _isLoading = true);
     final success = await PurchaseService().restorePurchases();
     if (mounted) {
-      setState(() => _isLoading = false);
       if (success) {
-        // If successful, pop and return true
-        context.pop(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Purchases restored! Unlimited access unlocked.',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF222222),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          setState(() => _isLoading = false);
+          context.pop(true);
+        }
       } else {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No previous purchases found.')),
         );
