@@ -233,8 +233,18 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Column(
                 children: [
                   if (widget.initialQuery != null) ...[
-                    // When actively searching, we want the bar pinned to the top.
-                    _buildSearchBar(context),
+                    // Back button + search bar pinned to top
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, size: 24),
+                          onPressed: () => context.go('/search'),
+                          tooltip: 'Back to Home',
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildSearchBar(context)),
+                      ],
+                    ),
                     const SizedBox(height: 32),
                     Expanded(child: _buildBody()),
                   ] else ...[
@@ -301,11 +311,26 @@ class _SearchScreenState extends State<SearchScreen> {
               Positioned(
                 top: 16,
                 right: 24,
-                child: IconButton(
-                  icon: const Icon(Icons.bookmarks_outlined, size: 28),
-                  onPressed: () {
-                    context.push('/bookmarks');
-                  },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded, size: 26),
+                      tooltip: 'Shuffle Topics',
+                      onPressed: () {
+                        setState(() {
+                          _shuffleEditorialKeywords();
+                          _isPersonalized = false;
+                        });
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.bookmarks_outlined, size: 28),
+                      onPressed: () {
+                        context.push('/bookmarks');
+                      },
+                    ),
+                  ],
                 ),
               ),
           ],

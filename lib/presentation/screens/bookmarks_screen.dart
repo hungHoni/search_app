@@ -35,6 +35,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/search'),
+        ),
         title: Text(
           "Saved History",
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -188,6 +192,10 @@ class _SavedDetailScreenState extends State<SavedDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: Text(
           _currentSearch.query.toUpperCase(),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
