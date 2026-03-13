@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../widgets/animated_fade_item.dart';
 import 'package:go_router/go_router.dart';
+import '../widgets/animated_fade_item.dart';
 import 'splash_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
@@ -42,12 +45,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    // Show splash screen on cold start while we initialize
     if (!_splashComplete) {
       return SplashScreen(onComplete: _onSplashComplete);
     }
 
-    // After splash, check onboarding
     if (_checkingOnboarding) {
       return const Scaffold(body: SizedBox.shrink());
     }
@@ -87,45 +88,50 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
   bool _isLoading = false;
   String? _errorMessage;
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submitAuth() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Please enter email and password');
-      return;
-    }
-
+  Future<void> _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      if (kIsWeb) {
+        // Fallback for Web: authenticate() is not supported on Web in 7.x
+        // We use FirebaseAuth's direct popup method which works perfectly on Chrome
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        // Mobile flow
+        final googleSignIn = GoogleSignIn.instance;
+        
+        // Initialize is required in 7.0.0+ before any other calls
+        await googleSignIn.initialize();
+        
+        // authenticate() replaces signIn() in 7.0.0+
+        final googleUser = await googleSignIn.authenticate();
+
+        // authentication is now a property, not a Future in 7.2.0
+        final googleAuth = googleUser.authentication;
+        
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: null, 
+          idToken: googleAuth.idToken,
+        );
+
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
     } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException: ${e.code} - ${e.message}');
       setState(() {
-        _errorMessage = e.message ?? 'An error occurred during authentication';
+        _errorMessage = e.message ?? 'Authentication failed';
       });
     } catch (e) {
+      debugPrint('Google Sign-In Error: $e');
       setState(() {
-        _errorMessage = 'An unexpected error occurred';
+        _errorMessage = 'Error: $e';
       });
     } finally {
       if (mounted) {
@@ -137,178 +143,107 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AnimatedFadeItem(
-                  delay: const Duration(milliseconds: 100),
-                  child: Text(
-                    "Welcome\nBack.",
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 48,
-                      height: 1.1,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: -1.5,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Spacer(flex: 2),
+              AnimatedFadeItem(
+                delay: const Duration(milliseconds: 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Minimal",
+                      style: GoogleFonts.lora(
+                        fontSize: 56,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF222222),
+                        height: 0.9,
+                      ),
                     ),
-                    textAlign: TextAlign.left,
+                    Text(
+                      "Study.",
+                      style: GoogleFonts.lora(
+                        fontSize: 56,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF222222),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              AnimatedFadeItem(
+                delay: const Duration(milliseconds: 300),
+                child: Text(
+                  "Your personalized learning library, powered by AI and simplicity.",
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                    height: 1.6,
                   ),
                 ),
-                const SizedBox(height: 64),
-
-                // Email Field
+              ),
+              const Spacer(flex: 3),
+              if (_errorMessage != null)
                 AnimatedFadeItem(
-                  delay: const Duration(milliseconds: 250),
-                  child: TextField(
-                    controller: _emailController,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      fontSize: 24,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Email',
-                      hintStyle: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(
-                            fontWeight: FontWeight.w300,
-                            fontSize: 24,
-                            color: Theme.of(context).hintColor,
-                          ),
-                      contentPadding: const EdgeInsets.only(bottom: 8),
-                      isDense: true,
-                      border: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
-                      ),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    autocorrect: false,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Password Field
-                AnimatedFadeItem(
-                  delay: const Duration(milliseconds: 400),
-                  child: TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      fontSize: 24,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Password',
-                      hintStyle: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(
-                            fontWeight: FontWeight.w300,
-                            fontSize: 24,
-                            color: Theme.of(context).hintColor,
-                          ),
-                      contentPadding: const EdgeInsets.only(bottom: 8),
-                      isDense: true,
-                      border: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
-                      ),
-                    ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submitAuth(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                if (_errorMessage != null)
-                  Padding(
+                  delay: Duration.zero,
+                  child: Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
                       _errorMessage!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary, // Enforce strict monochrome palette
+                      style: GoogleFonts.inter(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
                     ),
                   ),
-
-                const SizedBox(height: 32),
-
-                // Action Buttons
-                AnimatedFadeItem(
-                  delay: const Duration(milliseconds: 550),
-                  child: _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            ElevatedButton(
-                              onPressed: _submitAuth,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                foregroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 20,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                "LOG IN",
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(
-                                      color: Colors.white,
-                                      letterSpacing: 2.0,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextButton(
-                              onPressed: () {
-                                context.push('/signup');
-                              },
-                              child: Text(
-                                "Need an account? Sign up",
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withValues(alpha: 0.7),
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
                 ),
-              ],
-            ),
+              AnimatedFadeItem(
+                delay: const Duration(milliseconds: 500),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          OutlinedButton(
+                            onPressed: _signInWithGoogle,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFEEEEEE), width: 1.5),
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              backgroundColor: Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.login, size: 22, color: Color(0xFF222222)),
+                                const SizedBox(width: 16),
+                                Text(
+                                  "SIGN IN WITH GOOGLE",
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFF222222),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+              const SizedBox(height: 48),
+            ],
           ),
         ),
       ),

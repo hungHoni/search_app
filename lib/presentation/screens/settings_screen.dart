@@ -160,7 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Text(
                         "LOG OUT",
                         style: GoogleFonts.inter(
-                          color: Colors.red[800],
+                          color: const Color(0xFF222222),
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.5,
                         ),

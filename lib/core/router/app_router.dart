@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../presentation/screens/auth_screen.dart';
-import '../../presentation/screens/signup_screen.dart';
 import '../../presentation/screens/search_screen.dart';
 import '../../presentation/screens/bookmarks_screen.dart';
 import '../../domain/models/saved_search.dart';
@@ -68,12 +67,6 @@ final GoRouter appRouter = GoRouter(
       path: '/login',
       pageBuilder: (BuildContext context, GoRouterState state) {
         return _fadeSlideTransition(state: state, child: const AuthScreen());
-      },
-    ),
-    GoRoute(
-      path: '/signup',
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return _fadeSlideTransition(state: state, child: const SignupScreen());
       },
     ),
     // The main application screen. The 'q' param dictates if we show results or idle grid.

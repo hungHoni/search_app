@@ -581,9 +581,7 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Text(
             _errorMessage!,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary, // Enforce strict monochrome palette
+              color: const Color(0xFF222222), // Enforce strict monochrome palette
             ),
             textAlign: TextAlign.center,
           ),

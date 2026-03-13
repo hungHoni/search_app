@@ -1,6 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../domain/models/flashcard.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../widgets/animated_fade_item.dart';
+
 
 class FlashcardReviewScreen extends StatefulWidget {
   final List<Flashcard> flashcards;
@@ -68,12 +71,18 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: Text(
-                _pageController.hasClients && _pageController.page?.round() == widget.flashcards.length
-                    ? "Great job!"
-                    : "Swipe to navigate • Tap to flip",
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).hintColor,
+              child: AnimatedFadeItem(
+                delay: const Duration(milliseconds: 500),
+                child: Text(
+                  _pageController.hasClients && _pageController.page?.round() == widget.flashcards.length
+                      ? "Great job!"
+                      : "Swipe to navigate • Tap to flip",
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                    color: const Color(0xFF888888),
+                  ),
                 ),
               ),
             ),
@@ -90,33 +99,55 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.celebration_outlined, size: 80, color: Color(0xFF222222)),
+            AnimatedFadeItem(
+              delay: const Duration(milliseconds: 100),
+              child: const Icon(Icons.celebration_outlined, size: 80, color: Color(0xFF222222)),
+            ),
             const SizedBox(height: 32),
-            Text(
-              "Session Complete!",
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: const Color(0xFF222222),
-                    fontWeight: FontWeight.w600,
-                  ),
+            AnimatedFadeItem(
+              delay: const Duration(milliseconds: 200),
+              child: Text(
+                "Session Complete!",
+                style: GoogleFonts.lora(
+                  color: const Color(0xFF222222),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 32,
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            Text(
-              "You reviewed ${widget.flashcards.length} cards today. Keep up the momentum!",
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+            AnimatedFadeItem(
+              delay: const Duration(milliseconds: 300),
+              child: Text(
+                "You reviewed ${widget.flashcards.length} cards today. Keep up the momentum!",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
             ),
             const SizedBox(height: 48),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF222222),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(200, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            AnimatedFadeItem(
+              delay: const Duration(milliseconds: 500),
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF222222),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(200, 56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  "FINISH",
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                    fontSize: 13,
+                  ),
+                ),
               ),
-              child: const Text("FINISH", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0)),
             ),
           ],
         ),
