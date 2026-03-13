@@ -16,6 +16,8 @@ import '../../data/topic_store.dart';
 import '../../infrastructure/topic_cache_service.dart';
 import '../../data/topic_content.dart';
 import '../../infrastructure/purchase_service.dart';
+import '../../infrastructure/daily_limit_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -212,8 +214,29 @@ class _SearchScreenState extends State<SearchScreen> {
           }
         }
       }
+      
+      // 4. Daily Limit Check for Premium users
+      if (!await DailyLimitService().canGenerate()) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _results = [];
+            _errorMessage = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Daily limit of 5 custom AI searches reached. Rest your brain until tomorrow!',
+                style: GoogleFonts.inter(color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFF222222),
+            ),
+          );
+        }
+        return;
+      }
 
-      // 4. Cache miss + Premium User — fetch from Gemini and cache the result
+      // 5. Cache miss + Premium User — fetch from Gemini and cache the result
       final results = await _searchService.fetchResults(query);
       if (mounted) {
         setState(() {
@@ -222,6 +245,7 @@ class _SearchScreenState extends State<SearchScreen> {
         });
         // Cache for future instant access
         await _cacheService.cacheResults(query, results);
+        await DailyLimitService().incrementGeneration();
       }
     } catch (e) {
       if (mounted) {

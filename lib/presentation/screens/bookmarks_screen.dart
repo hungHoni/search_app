@@ -13,6 +13,8 @@ import '../../infrastructure/gemini_search_service.dart';
 import '../widgets/shimmer_skeleton.dart';
 import '../widgets/empty_state_view.dart';
 import '../../infrastructure/purchase_service.dart';
+import '../../infrastructure/daily_limit_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -159,6 +161,21 @@ class _SavedDetailScreenState extends State<SavedDetailScreen> {
       }
     }
 
+    if (!await DailyLimitService().canGenerate()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Daily limit of 5 custom AI generations reached. Rest your brain until tomorrow!',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF222222),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isGenerating = true);
     try {
       final flashcards = await _searchService.generateFlashcards(
@@ -175,6 +192,7 @@ class _SavedDetailScreenState extends State<SavedDetailScreen> {
       );
 
       await _bookmarkService.updateSearch(updatedSearch);
+      await DailyLimitService().incrementGeneration();
 
       if (mounted) {
         setState(() {
