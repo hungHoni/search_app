@@ -11,6 +11,7 @@ import '../../domain/models/flashcard.dart';
 import '../../presentation/screens/flashcard_review_screen.dart';
 import '../../presentation/screens/onboarding_screen.dart';
 import '../../presentation/screens/settings_screen.dart';
+import '../../presentation/screens/review_dashboard_screen.dart';
 import '../../presentation/screens/paywall_screen.dart';
 
 /// Creates a [CustomTransitionPage] with a combined fade + vertical slide
@@ -166,6 +167,15 @@ final GoRouter appRouter = GoRouter(
         return _fadeSlideTransition(
           state: state,
           child: const SettingsScreen(),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/review',
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return _fadeSlideTransition(
+          state: state,
+          child: const ReviewDashboardScreen(),
         );
       },
     ),

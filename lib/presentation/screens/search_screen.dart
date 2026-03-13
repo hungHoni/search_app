@@ -396,6 +396,13 @@ class _SearchScreenState extends State<SearchScreen> {
                       },
                     ),
                     IconButton(
+                      icon: const Icon(Icons.school_outlined, size: 26),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        context.push('/review');
+                      },
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.settings_outlined, size: 26),
                       onPressed: () {
                         HapticFeedback.selectionClick();

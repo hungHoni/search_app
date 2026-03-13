@@ -1,3 +1,4 @@
+import '../models/flashcard.dart';
 import '../models/saved_search.dart';
 import '../models/search_result.dart';
 
@@ -10,4 +11,5 @@ abstract class BookmarkRepository {
   Future<void> updateSearch(SavedSearch search);
   Future<void> deleteSearch(String userId, String bookmarkId);
   Stream<List<SavedSearch>> watchSavedSearches(String userId);
+  Future<List<Flashcard>> getAllFlashcards(String userId);
 }

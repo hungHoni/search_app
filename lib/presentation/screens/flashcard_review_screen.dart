@@ -15,6 +15,14 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
   final PageController _pageController = PageController();
 
   @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -43,8 +51,11 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
-                itemCount: widget.flashcards.length,
+                itemCount: widget.flashcards.length + 1, // Add 1 for completion page
                 itemBuilder: (context, index) {
+                  if (index == widget.flashcards.length) {
+                    return _buildCompletionPage();
+                  }
                   return Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32.0,
@@ -58,11 +69,54 @@ class _FlashcardReviewScreenState extends State<FlashcardReviewScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24.0),
               child: Text(
-                "Swipe to navigate • Tap to flip",
+                _pageController.hasClients && _pageController.page?.round() == widget.flashcards.length
+                    ? "Great job!"
+                    : "Swipe to navigate • Tap to flip",
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: Theme.of(context).hintColor,
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompletionPage() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.celebration_outlined, size: 80, color: Color(0xFF222222)),
+            const SizedBox(height: 32),
+            Text(
+              "Session Complete!",
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: const Color(0xFF222222),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "You reviewed ${widget.flashcards.length} cards today. Keep up the momentum!",
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+            const SizedBox(height: 48),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF222222),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(200, 56),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text("FINISH", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0)),
             ),
           ],
         ),
