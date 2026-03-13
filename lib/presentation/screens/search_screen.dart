@@ -17,6 +17,8 @@ import '../../infrastructure/topic_cache_service.dart';
 import '../../data/topic_content.dart';
 import '../../infrastructure/purchase_service.dart';
 import '../../infrastructure/daily_limit_service.dart';
+import 'package:flutter/services.dart';
+import '../../domain/repositories/history_repository.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -42,6 +44,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<SearchResult> _results = [];
   String? _errorMessage;
   bool _isPersonalized = false;
+  List<String> _history = [];
 
   List<Map<String, dynamic>> _shuffledKeywords = [];
 
@@ -49,6 +52,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _shuffleEditorialKeywords();
+    _loadSearchHistory();
     _loadPersonalizedSuggestions(); // Async — will update chips when ready
 
     // If the router deep-linked us directly to a search query, execute it immediately
@@ -150,6 +154,13 @@ class _SearchScreenState extends State<SearchScreen> {
     }).toList();
   }
 
+  Future<void> _loadSearchHistory() async {
+    final history = await HistoryRepository().getHistory();
+    if (mounted) {
+      setState(() => _history = history);
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -159,6 +170,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _submitSearch(String query) {
     if (query.trim().isEmpty) return;
+
+    // Tactile feedback for search start
+    HapticFeedback.lightImpact();
+
+    // Record in local history
+    HistoryRepository().addSearch(query);
 
     // Instead of doing the work locally, push a new URL to the router.
     // This allows the browser back button to work naturally.
@@ -316,12 +333,22 @@ class _SearchScreenState extends State<SearchScreen> {
                                 ),
                               ),
                               const SizedBox(height: 48),
-                              // 2. Animated Search Bar
                               AnimatedFadeItem(
                                 delay: const Duration(milliseconds: 250),
                                 child: _buildSearchBar(context),
                               ),
-                              const SizedBox(height: 64),
+                              const SizedBox(height: 32),
+
+                              // 2.5 Recent History
+                              if (_history.isNotEmpty) ...[
+                                AnimatedFadeItem(
+                                  delay: const Duration(milliseconds: 300),
+                                  child: _buildRecentHistory(),
+                                ),
+                                const SizedBox(height: 48),
+                              ],
+
+                              const SizedBox(height: 32),
                               // 3. Personalized label or staggered grid
                               if (_isPersonalized)
                                 AnimatedFadeItem(
@@ -369,8 +396,16 @@ class _SearchScreenState extends State<SearchScreen> {
                       },
                     ),
                     IconButton(
+                      icon: const Icon(Icons.settings_outlined, size: 26),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        context.push('/settings');
+                      },
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.bookmarks_outlined, size: 28),
                       onPressed: () {
+                        HapticFeedback.selectionClick();
                         context.push('/bookmarks');
                       },
                     ),
@@ -380,6 +415,57 @@ class _SearchScreenState extends State<SearchScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRecentHistory() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "RECENTLY VIEWED",
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                letterSpacing: 3.0,
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).hintColor,
+              ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _history.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final query = _history[index];
+              return InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _searchController.text = query;
+                  _submitSearch(query);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F9F9),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFFEEEEEE)),
+                  ),
+                  child: Text(
+                    query,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF222222),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -520,22 +606,8 @@ class _SearchScreenState extends State<SearchScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Sign Out Button (Utility)
-        TextButton.icon(
-          onPressed: () {
-            FirebaseAuth.instance.signOut();
-          },
-          icon: Icon(
-            Icons.logout,
-            size: 16,
-            color: Theme.of(context).hintColor,
-          ),
-          label: Text(
-            "Logout",
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).hintColor,
-            ),
-          ),
-        ),
+        // Usage indicator (brief) - will be fully detailed in Settings
+        const SizedBox.shrink(),
 
         // Save Bookmark Button
         ElevatedButton.icon(
@@ -584,6 +656,10 @@ class _SearchScreenState extends State<SearchScreen> {
         _searchController.text.trim(),
         _results,
       );
+      
+      // Tactile feedback for success
+      HapticFeedback.mediumImpact();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
