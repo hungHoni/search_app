@@ -1,6 +1,12 @@
 import 'topic_content_fundamentals.dart';
 import 'topic_content_engineering.dart';
 import 'topic_content_advanced.dart';
+import 'topic_content_phase2_mobile.dart';
+import 'topic_content_phase2_backend.dart';
+import 'topic_content_phase3_game_sec.dart';
+import 'topic_content_phase3_compiler_db.dart';
+import 'topic_content_phase3_frontend_design.dart';
+import 'topic_content_phase3_remaining.dart';
 import '../domain/models/search_result.dart';
 
 /// Provides pre-generated educational content for all 100 curated topics.
@@ -11,6 +17,12 @@ class TopicContent {
     ...fundamentalsContent,
     ...engineeringContent,
     ...advancedContent,
+    ...phase2MobileContent,
+    ...phase2BackendContent,
+    ...phase3GameSecContent,
+    ...phase3CompilerDbContent,
+    ...phase3FrontendDesignContent,
+    ...phase3RemainingContent,
   };
 
   /// Returns pre-generated [SearchResult] list for [topic], or null if not found.
