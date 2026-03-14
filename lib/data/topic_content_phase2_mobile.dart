@@ -1,4 +1,4 @@
-import '../domain/models/search_result.dart';
+
 
 final Map<String, List<Map<String, String>>> phase2MobileContent = {
   'flutter architecture': [
