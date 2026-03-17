@@ -1,53 +1,23 @@
-import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../domain/models/search_result.dart';
 import '../domain/models/flashcard.dart';
 import '../domain/repositories/search_repository.dart';
 
 class GeminiSearchService implements SearchRepository {
+  final HttpsCallable _geminiProxy =
+      FirebaseFunctions.instance.httpsCallable('geminiProxy');
+
   @override
   Future<List<SearchResult>> fetchResults(String query) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null ||
-        apiKey.isEmpty ||
-        apiKey == 'your_gemini_api_key_here') {
-      throw Exception(
-        'Oops! Please put your real Gemini API key inside the .env file in the project root, then do a Hot Restart.',
-      );
-    }
-
-    final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: apiKey,
-      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
-    );
-
-    final prompt =
-        '''
-You are an expert technical educator. Provide a deep, 5-part educational analysis of the topic: "$query".
-Return the result strictly as a JSON array of 5 objects. Each object must have exactly two string fields: "title" and "summary".
-
-IMPORTANT: Choose 5 section titles that are MOST RELEVANT to this specific topic. Do NOT use generic categories.
-For example:
-- For "Docker": "Container Architecture", "Dockerfile Best Practices", "Networking & Volumes", "Security Considerations", "Docker Compose Orchestration"
-- For "Binary Search": "Algorithm Mechanics", "Time & Space Complexity", "Edge Cases & Off-by-One", "Variations (Lower/Upper Bound)", "Real-World Search Applications"
-- For "REST APIs": "Resource Design Principles", "HTTP Methods & Status Codes", "Authentication Strategies", "Versioning & Pagination", "Rate Limiting & Caching"
-
-Each title should be numbered (1-5) and specific to "$query". The summary should be concise, highly educational, and 2-3 sentences max.
-''';
-
     try {
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
+      final response = await _geminiProxy.call<Map<String, dynamic>>({
+        'query': query,
+        'type': 'search',
+      });
 
-      final String? responseText = response.text;
-      if (responseText == null || responseText.isEmpty) {
-        throw Exception('Received an empty response from Gemini.');
-      }
-
-      final List<dynamic> jsonList = jsonDecode(responseText);
+      final data = response.data;
+      final List<dynamic> jsonList = List<dynamic>.from(data['results']);
 
       if (jsonList.length < 5) {
         throw Exception('Gemini did not return all 5 required parts.');
@@ -57,15 +27,12 @@ Each title should be numbered (1-5) and specific to "$query". The summary should
         return SearchResult(
           title: json['title'] ?? 'Unknown Title',
           summary: json['summary'] ?? 'No summary provided',
-          url: '', // Unused in this minimal UI
+          url: '',
         );
       }).toList();
+    } on FirebaseFunctionsException catch (e) {
+      throw Exception('Cloud Function error: ${e.message}');
     } catch (e) {
-      if (e is FormatException) {
-        throw Exception(
-          'Gemini returned an invalid JSON block. Please try again.',
-        );
-      }
       throw Exception('Failed to fetch from Gemini: $e');
     }
   }
@@ -75,45 +42,17 @@ Each title should be numbered (1-5) and specific to "$query". The summary should
     String topic,
     List<SearchResult> contextData,
   ) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null ||
-        apiKey.isEmpty ||
-        apiKey == 'your_gemini_api_key_here') {
-      throw Exception('Missing real Gemini API Key for flashcards.');
-    }
-
-    final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: apiKey,
-      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
-    );
-
-    final String contextText = contextData
-        .map((c) => '${c.title}: ${c.summary}')
-        .join('\n');
-
-    final prompt =
-        '''
-You are an expert technical educator. I have provided a 5-part educational analysis of the topic: "$topic".
-Based ONLY on the following context, generate exactly 5 highly educational Q&A flashcards.
-
-Context:
-$contextText
-
-Return the result strictly as a JSON array of exactly 5 objects. Each object must have exactly two string fields: "question" and "answer".
-Keep the questions concise, and the answers thorough but easily readable (2-3 sentences max).
-''';
-
     try {
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
+      final response = await _geminiProxy.call<Map<String, dynamic>>({
+        'query': topic,
+        'type': 'flashcards',
+        'contextData': contextData
+            .map((c) => {'title': c.title, 'summary': c.summary})
+            .toList(),
+      });
 
-      final String? responseText = response.text;
-      if (responseText == null || responseText.isEmpty) {
-        throw Exception('Received an empty response from Gemini.');
-      }
-
-      final List<dynamic> jsonList = jsonDecode(responseText);
+      final data = response.data;
+      final List<dynamic> jsonList = List<dynamic>.from(data['results']);
 
       if (jsonList.length < 5) {
         throw Exception('Gemini did not return all 5 required flashcards.');
@@ -122,12 +61,9 @@ Keep the questions concise, and the answers thorough but easily readable (2-3 se
       return jsonList.take(5).map((json) {
         return Flashcard.fromJson(json as Map<String, dynamic>);
       }).toList();
+    } on FirebaseFunctionsException catch (e) {
+      throw Exception('Cloud Function error: ${e.message}');
     } catch (e) {
-      if (e is FormatException) {
-        throw Exception(
-          'Gemini returned an invalid JSON block. Please try again.',
-        );
-      }
       throw Exception('Failed to generate flashcards: $e');
     }
   }

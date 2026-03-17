@@ -13,10 +13,14 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   // Initialize RevenueCat
-  await PurchaseService().init(
-    dotenv.env['REVENUECAT_APPLE_API_KEY'] ?? '',
-    dotenv.env['REVENUECAT_GOOGLE_API_KEY'] ?? '',
-  );
+  try {
+    await PurchaseService().init(
+      dotenv.env['REVENUECAT_APPLE_API_KEY'] ?? '',
+      dotenv.env['REVENUECAT_GOOGLE_API_KEY'] ?? '',
+    );
+  } catch (e) {
+    debugPrint('RevenueCat initialization failed: $e');
+  }
 
   runApp(const MinimalSearchApp());
 }

@@ -106,9 +106,12 @@ class _AuthScreenState extends State<AuthScreen> {
       } else {
         // Mobile flow
         final googleSignIn = GoogleSignIn.instance;
-        
+
         // Initialize is required in 7.0.0+ before any other calls
-        await googleSignIn.initialize();
+        // serverClientId is needed on Android to obtain the idToken
+        await googleSignIn.initialize(
+          serverClientId: '204197319739-6g7uj24rh4u6m2fet5kar9r2sordsa5p.apps.googleusercontent.com',
+        );
         
         // authenticate() replaces signIn() in 7.0.0+
         final googleUser = await googleSignIn.authenticate();
